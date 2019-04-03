@@ -44,7 +44,7 @@
                     {% if docsroot %}
                         <a href="{{ docsroot }}">{% trans 'Documentation' %}</a> /
                     {% endif %}
-                    <a href="{{ docsroot }}/NKUFSS/user/{{ user.id }}/change">我的信息</a> /
+                    <a href="{{ docsroot }}/utils/user/{{ user.id }}/change">我的信息</a> /
                 {% endif %}
                 {% if user.has_usable_password %}
                 <a href="{% url 'admin:password_change' %}">{% trans 'Change password' %}</a> /
