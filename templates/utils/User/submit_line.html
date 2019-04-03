@@ -9,7 +9,8 @@
 {% if show_save_as_new %}<input type="submit" value="{% trans 'Save as new' %}" name="_saveasnew">{% endif %}
 {% if show_save_and_add_another %}<input type="submit" value="{% trans 'Save and add another' %}" name="_addanother">{% endif %}
 {% if show_save_and_continue %}<input type="submit" value="{% if can_change %}{% trans 'Save and continue editing' %}{% else %}{% trans 'Save and view' %}{% endif %}" name="_continue">{% endif %}
-{% if new_submit %}<input type="submit" value="添加新的提交" class="default" name="_add">{% endif %}
+{% if show_include %}<input type="submit" value="添加进组织" class="default" name="_include">{% endif %}
+{% if show_exclude %}<input type="submit" value="移出组织" class="default" name="_exclude">{% endif %}
 {% if show_close %}<a href="{% url opts|admin_urlname:'changelist' %}" class="closelink">{% trans 'Close' %}</a>{% endif %}
 {% endblock %}
 </div>

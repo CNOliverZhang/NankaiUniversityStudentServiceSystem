@@ -37,16 +37,19 @@
 <div>
 {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
 {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
-{% if collecting_submit_list or user_submit_list or modify_submit or submit_status %}
 {% block submit-row %}
 <div class="submit-row">
-    {% if modify_submit %}<p class="deletelink-box"><a href="{{ modify_submit }}">修改已提交的内容</a></p>{% endif %}
-    {% if collecting_submit_list %}<p class="deletelink-box"><a href="{{ collecting_submit_list }}">查看所有相关提交</a></p>{% endif %}
-    {% if user_submit_list %}<p class="deletelink-box"><a href="{{ user_submit_list }}">查看我的相关提交</a></p>{% endif %}
-    {% if submit_status %}<a href="{{ submit_status }}">查看用户是否已提交</a>{% endif %}
+    {% if allow_handle %}
+    <p class="deletelink-box"><input type="submit" value="标记为“已处理”" name="_handle"></p>
+    <p class="deletelink-box"><input type="submit" value="驳回" name="_reject"></p>
+    {% endif %}
+    {% if allow_submit %}<p class="deletelink-box"><input type="submit" value="提交" name="_submit"></p>{% endif %}
+    {% if allow_withdraw %}<p class="deletelink-box"><input type="submit" value="撤回" name="_withdraw"></p>{% endif %}
+    {% if collecting_submit_list %}<a href="{{ collecting_submit_list }}" class="closelink">查看所有相关提交</a>{% endif %}
+    {% if user_submit_list %}<a href="{{ user_submit_list }}" class="closelink">查看我的相关提交</a>{% endif %}
+    {% if collecting %}<a href="{{ collecting }}" class="closelink">查看对应的收集</a>{% endif %}
 </div>
 {% endblock %}
-{% endif %}
 {% if save_on_top %}{% block submit_buttons_top %}{% submit_row %}{% endblock %}{% endif %}
 {% if errors %}
     <p class="errornote">
