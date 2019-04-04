@@ -156,3 +156,5 @@ CKEDITOR_CONFIGS = {
 }
 
 AUTH_USER_MODEL = 'utils.User'
+
+print(os.path.join(BASE_DIR, 'templates'))
