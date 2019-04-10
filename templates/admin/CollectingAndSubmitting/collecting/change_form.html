@@ -37,14 +37,21 @@
 <div>
 {% if is_popup %}<input type="hidden" name="{{ is_popup_var }}" value="1">{% endif %}
 {% if to_field %}<input type="hidden" name="{{ to_field_var }}" value="{{ to_field }}">{% endif %}
-{% if collecting_submit_list or user_submit_list or modify_submit or submit_status %}
+
+{% if collecting_submit_list or submit_status %}
 <div class="submit-row">
-    {% if modify_submit %}<p class="deletelink-box"><a href="{{ modify_submit }}">修改已提交的内容</a></p>{% endif %}
     {% if collecting_submit_list %}<p class="deletelink-box"><a href="{{ collecting_submit_list }}">查看所有相关提交</a></p>{% endif %}
-    {% if user_submit_list %}<p class="deletelink-box"><a href="{{ user_submit_list }}">查看我的相关提交</a></p>{% endif %}
     {% if submit_status %}<a href="{{ submit_status }}">查看用户是否已提交</a>{% endif %}
 </div>
 {% endif %}
+{% if new_submit or user_submit_list or modify_submit %}
+<div class="submit-row">
+    {% if modify_submit %}<p class="deletelink-box"><a href="{{ modify_submit }}" class="closelink">修改已提交的内容</a></p>{% endif %}
+    {% if user_submit_list %}<p class="deletelink-box"><a href="{{ user_submit_list }}" class="closelink">查看我的相关提交</a></p>{% endif %}
+    {% if new_submit %}<input type="submit" value="添加新的提交" class="default" name="_add">{% endif %}
+</div>
+{% endif %}
+
 {% if save_on_top %}{% block submit_buttons_top %}{% submit_row %}{% endblock %}{% endif %}
 {% if errors %}
     <p class="errornote">
