@@ -14,7 +14,7 @@
 {% endblock %}
 
 {% block content %}
-<h1>已提交的用户</h1>
+<h1>已经提交的用户</h1>
 {% if submitted_results %}
 <table>
     <thead>
@@ -36,10 +36,10 @@
     </tbody>
 </table>
 {% else %}
-<p>没有必须提交且已提交的用户</p>
+<p>没有必须提交且已经提交的用户</p>
 {% endif %}
 <br/>
-<h1>未提交的用户</h1>
+<h1>尚未提交的用户</h1>
 {% if not_submitted_results %}
 <table>
     <thead>
