@@ -130,7 +130,7 @@ class CustomUserAdmin(UserAdmin):
     # 删除账户权限
     def has_delete_permission(self, request, obj=None):
         # 允许管理员删除任何用户，允许删除自身
-        if request.user.type == 0 or (obj and (request.user == obj)):
+        if request.user.type == 0:
             return True
         return False
 
@@ -266,10 +266,10 @@ class CustomUserAdmin(UserAdmin):
 
     # 进入修改页面前的行为
     def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
         # 修改按钮
         obj = self.get_object(request, object_id)
         if obj != request.user and request.user.type != 0:
-            extra_context = extra_context or {}
             try:
                 obj.organizations.get(id=request.user.id)
                 extra_context['show_exclude'] = True
@@ -277,10 +277,18 @@ class CustomUserAdmin(UserAdmin):
                 extra_context['show_include'] = True
         # 修改表单字段
         self.modify_change_form(request, obj)
+        # 学生用户不显示面包屑导航
+        if request.user.type == 1:
+            extra_context['show_breadcrumbs'] = False
+        else:
+            extra_context['show_breadcrumbs'] = True
         return self.changeform_view(request, object_id, form_url, extra_context)
 
     # 点击按钮
     def response_change(self, request, obj):
+        # 学生编辑完自己的信息跳出
+        if request.user.type == 1:
+            return HttpResponseRedirect("/")
         # 添加进组织
         if "_include" in request.POST:
             obj.organizations.add(request.user)
