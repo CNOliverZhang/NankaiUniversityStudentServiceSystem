@@ -109,7 +109,7 @@ class CollectingAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_display = ['title', 'publisher', 'publish_time', 'due_time', 'allow_multiple', 'private', 'forced']
     list_filter = [UserPublishedFilter, UserForcedFilter, DueTimeMissedFilter, Submitted, 'allow_multiple', 'private', 'forced']
-    search_fields = ('title', 'content', 'publisher')
+    search_fields = ('title', 'content', 'publisher__name')
 
     # 初始化详情页
     add_fieldsets = (
@@ -506,7 +506,7 @@ class SubmittingAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_display = ['title', 'user', 'collecting', 'submit_time', 'status']
     list_filter = [Type, 'status']
-    search_fields = ('title', 'content', 'collecting', 'user')
+    search_fields = ('title', 'content', 'collecting__title', 'user__name')
 
     # 初始化详情页
     add_fieldsets = (
