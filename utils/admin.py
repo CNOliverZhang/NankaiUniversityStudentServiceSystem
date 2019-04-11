@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponseRedirect
-
 from .models import *
 
 
@@ -12,10 +12,12 @@ class CollegeAdmin(admin.ModelAdmin):
 
     list_per_page = 10
 
-    def get_model_perms(self, request):
-        if request.user.type != 0:
-            return {}
-        return super().get_model_perms(request)
+    def has_module_permission(self, request):
+        if isinstance(request.user, AnonymousUser):
+            return False
+        if request.user.type == 0:
+            return True
+        return False
 
     def has_view_permission(self, request, obj=None):
         if request.user.type == 0:
@@ -51,10 +53,13 @@ class CustomUserAdmin(UserAdmin):
 
         def queryset(self, request, queryset):
             user = request.user
+            # 自己
             if self.value() == '0':
                 return queryset.filter(id=user.id)
+            # 下属学生
             elif self.value() == '1':
                 return (queryset.filter(type=1) & user.members.all()).exclude(id=user.id)
+            # 下属组织和社团
             elif self.value() == '2':
                 return ((queryset.filter(type=2) | queryset.filter(type=3)) & user.members.all()).exclude(id=user.id)
 
@@ -62,7 +67,7 @@ class CustomUserAdmin(UserAdmin):
     list_per_page = 10
     list_display = ('name', 'type', 'campus', 'college', 'description')
     list_filter = ('type', 'campus', Member)
-    search_fields = ('username', 'name')
+    search_fields = ('username', 'name', 'college__name', 'organizations__name')
     actions = ['set_member', 'unset_member']
 
     # 初始化详情页全部权限
@@ -94,24 +99,26 @@ class CustomUserAdmin(UserAdmin):
     # 根据用户角色筛选查询集
     def get_queryset(self, request):
         qs = super(CustomUserAdmin, self).get_queryset(request)
+        # 管理员可查看全部信息
+        if request.user.type == 0:
+            return qs
         # 学生可查看自身信息
-        if request.user.type == 1:
+        elif request.user.type == 1:
             return qs.filter(id=request.user.id)
         # 团学组织可查看除管理员外的所有信息
         elif request.user.type == 2:
             return qs.exclude(type=0)
-        # 社团可查看所有学生信息
+        # 社团可查看除管理员和团学组织外的所有信息
         elif request.user.type == 3:
-            return qs.filter(type=1) | qs.filter(id=request.user.id)
-        # 管理员可查看全部用户信息
-        else:
-            return qs
+            return qs.exclude(type=0).exclude(type=2)
 
     # 不允许学生显示列表页面
-    def get_model_perms(self, request):
+    def has_module_permission(self, request):
+        if isinstance(request.user, AnonymousUser):
+            return False
         if request.user.type == 1:
-            return {}
-        return super().get_model_perms(request)
+            return False
+        return True
 
     # 新建账户权限
     def has_add_permission(self, request):
@@ -129,7 +136,7 @@ class CustomUserAdmin(UserAdmin):
 
     # 删除账户权限
     def has_delete_permission(self, request, obj=None):
-        # 允许管理员删除任何用户，允许删除自身
+        # 允许管理员删除任何用户
         if request.user.type == 0:
             return True
         return False
