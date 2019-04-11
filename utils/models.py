@@ -121,3 +121,41 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return str(self.name) + '(' + str(self.get_type_display()) + ')'
+
+
+# 用户相关常量
+ADMIN = 0
+STUDENT = 1
+ORGANIZATION = 2
+CLUB = 3
+
+
+# 反馈
+class Feedback(models.Model):
+    title = models.CharField(max_length=50, verbose_name='标题')
+    user = models.ForeignKey(
+        to=User,
+        on_delete=models.CASCADE,
+        verbose_name='反馈者'
+    )
+    STATUS_CHOICE = (
+        (0, '未回复'),
+        (1, '已回复')
+    )
+    type = models.PositiveSmallIntegerField(
+        choices=STATUS_CHOICE,
+        default=0,
+        verbose_name='状态'
+    )
+    content = models.TextField(max_length=500, verbose_name='内容')
+    replay = models.TextField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name='回复'
+    )
+
+
+# 反馈相关常量
+NOT_REPLIED = 0
+REPLIED = 1

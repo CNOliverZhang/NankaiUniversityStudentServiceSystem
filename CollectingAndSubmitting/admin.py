@@ -1,8 +1,10 @@
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.utils import timezone
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
+from utils.models import *
 from .models import *
 
 
@@ -22,8 +24,10 @@ class CollectingAdmin(admin.ModelAdmin):
             )
 
         def queryset(self, request, queryset):
+            # 自己发布的
             if self.value() == '0':
                 return queryset.filter(publisher=request.user).all()
+            # 非自己发布的
             elif self.value() == '1':
                 return queryset.exclude(publisher=request.user).all()
 
@@ -39,13 +43,15 @@ class CollectingAdmin(admin.ModelAdmin):
             )
 
         def queryset(self, request, queryset):
+            # 自己必须提交的
             if self.value() == '0':
                 forced_collectings = request.user.forced_collectings.distinct()
                 for collecting in forced_collectings:
                     queryset = queryset.exclude(id=collecting.id)
-                return queryset
+                return queryset.distinct()
+            # 自己不必提交的
             elif self.value() == '1':
-                return queryset & request.user.forced_collectings.distinct()
+                return (queryset.distinct() & request.user.forced_collectings.distinct()).distinct()
 
     # 自定义筛选是否超时
     class DueTimeMissedFilter(SimpleListFilter):
@@ -64,20 +70,26 @@ class CollectingAdmin(admin.ModelAdmin):
 
         def queryset(self, request, queryset):
             current_time = timezone.now()
+            # 未设定提交期限
             if self.value() == '0':
                 return queryset.filter(due_time=None)
+            # 大于一周
             elif self.value() == '1':
                 time_point = current_time + timezone.timedelta(weeks=1)
                 return queryset.filter(due_time__gte=time_point)
+            # 小于一周
             elif self.value() == '2':
                 time_point = current_time + timezone.timedelta(weeks=1)
                 return queryset.filter(due_time__lte=time_point).filter(due_time__gte=current_time)
+            # 小于一天
             elif self.value() == '3':
                 time_point = current_time + timezone.timedelta(days=1)
                 return queryset.filter(due_time__lte=time_point).filter(due_time__gte=current_time)
+            # 小于一小时
             elif self.value() == '4':
                 time_point = current_time + timezone.timedelta(hours=1)
                 return queryset.filter(due_time__lte=time_point).filter(due_time__gte=current_time)
+            # 已超时
             elif self.value() == '5':
                 return queryset.filter(due_time__lte=current_time)
 
@@ -94,16 +106,18 @@ class CollectingAdmin(admin.ModelAdmin):
 
         def queryset(self, request, queryset):
             submittings = request.user.user_submittings.all()
+            # 自己已提交
             if self.value() == '0':
                 collectings = Collecting.objects.exclude(publisher=request.user)
                 for submitting in submittings:
                     collectings = collectings.exclude(id=submitting.collecting.id)
-                return queryset & collectings.distinct()
+                return queryset.distinct() & collectings.distinct()
+            # 自己未提交
             elif self.value() == '1':
                 collectings = Collecting.objects.none()
                 for submitting in submittings:
                     collectings = collectings | Collecting.objects.filter(id=submitting.collecting.id)
-                return queryset & collectings.distinct()
+                return queryset.distinct() & collectings.distinct()
 
     # 初始化列表页
     list_per_page = 10
@@ -135,55 +149,110 @@ class CollectingAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super(CollectingAdmin, self).get_queryset(request)
         # 管理员允许查看所有收集
-        if request.user.type == 0:
+        if request.user.type == ADMIN:
             return qs
-        # 其他只允许查看自己创建的或公开的和有权限查看的收集
-        user = request.user
-        return (qs.filter(publisher=user) | qs.filter(private=False) | user.opened_collectings.all()).distinct()
+        # 学生只允许查看公开的和有权限查看的收集
+        elif request.user.type == STUDENT:
+            return (qs.filter(private=False) | request.user.opened_collectings.all()).distinct()
+        # 团学组织只允许查看自己创建的或公开的和有权限查看的收集
+        elif request.user.type == ORGANIZATION:
+            return (qs.filter(publisher=request.user) | qs.filter(private=False) | request.user.opened_collectings.all()).distinct()
+        # 社团只允许查看自己创建的或公开的和有权限查看的收集
+        elif request.user.type == CLUB:
+            return (qs.filter(publisher=request.user) | qs.filter(private=False) | request.user.opened_collectings.all()).distinct()
+
+    # 收集模块权限
+    def has_module_permission(self, request):
+        # 未登录用户无权限
+        if isinstance(request.user, AnonymousUser):
+            return False
+        # 管理员有权限
+        if request.user.type == ADMIN:
+            return True
+        # 学生有权限
+        elif request.user.type == STUDENT:
+            return True
+        # 团学组织有权限
+        elif request.user.type == ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == CLUB:
+            return True
 
     # 新建收集权限
     def has_add_permission(self, request):
-        # 不允许学生新增收集
-        if request.user.type == 1:
+        # 管理员有权限
+        if request.user.type == ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == STUDENT:
             return False
-        return True
+        # 团学组织有权限
+        elif request.user.type == ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == CLUB:
+            return True
 
     # 修改收集权限
     def has_change_permission(self, request, obj=None):
-        # 除管理员外不允许修改他人发布的收集
-        if (not request.user.type == 0) and obj and obj.publisher != request.user:
+        # 自己有权限
+        if obj and (obj.publisher == request.user):
+            return True
+        # 管理员有权限
+        if request.user.type == ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == STUDENT:
             return False
-        return True
+        # 团学组织无权限
+        elif request.user.type == ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == CLUB:
+            return False
 
     # 删除收集权限
     def has_delete_permission(self, request, obj=None):
-        # 管理员可以删除任意收集，其他用户只允许删除自己发布的收集
-        if request.user.type == 0 or (obj and obj.publisher == request.user):
+        # 自己有权限
+        if obj and (obj.publisher == request.user):
             return True
-        return False
+        # 管理员有权限
+        if request.user.type == ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == CLUB:
+            return False
 
     # 根据用户角色决定必须提交的用户可选列表
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == 'collect_from':
             # 管理员允许指定所有用户提交
-            if request.user.type == 0:
+            if request.user.type == ADMIN:
                 kwargs["queryset"] = User.objects.all()
             # 非管理员只允许指定下级用户提交
             else:
                 kwargs["queryset"] = request.user.members.all()
         elif db_field.name == 'valid_users':
             # 管理员允许指定所有用户查看
-            if request.user.type == 0:
+            if request.user.type == ADMIN:
                 kwargs["queryset"] = User.objects.all()
-            # 非管理员只允许指定非管理员用户提交
+            # 非管理员只允许指定非管理员用户查看
             else:
-                kwargs["queryset"] = User.objects.exclude(type=0)
+                kwargs["queryset"] = User.objects.exclude(type=ADMIN)
         return super(CollectingAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
 
     # 根据用户角色变更添加页面的内容
     def modify_add_form(self, request):
         # 管理员允许自定义发布者
-        if request.user.type == 0:
+        if request.user.type == ADMIN:
+            self.readonly_fields = ()
             self.fieldsets = (
                 (None, {
                     'fields': ('title', 'content', 'publisher')
@@ -193,7 +262,8 @@ class CollectingAdmin(admin.ModelAdmin):
                 })
             )
         # 团学组织允许发布强制提交的收集
-        elif request.user.type == 2:
+        elif request.user.type == ORGANIZATION:
+            self.readonly_fields = ()
             self.fieldsets = (
                 (None, {
                     'fields': ('title', 'content')
@@ -203,7 +273,7 @@ class CollectingAdmin(admin.ModelAdmin):
                 })
             )
         # 社团不允许发布强制提交的收集
-        else:
+        elif request.user.type == CLUB:
             self.readonly_fields = ()
             self.fieldsets = (
                 (None, {
@@ -216,8 +286,8 @@ class CollectingAdmin(admin.ModelAdmin):
 
     # 根据用户角色变更修改页面的内容
     def modify_change_form(self, request, obj):
-        # 管理员拥有一切权限
-        if request.user.type == 0:
+        # 管理员拥有一切查看和修改权限
+        if request.user.type == ADMIN:
             self.readonly_fields = ('publish_time',)
             self.fieldsets = (
                 (None, {
@@ -227,41 +297,43 @@ class CollectingAdmin(admin.ModelAdmin):
                     'fields': ('due_time', 'allow_multiple', 'private', 'valid_users', 'forced', 'collect_from')
                 })
             )
-            return
-        # 编辑界面的字段
-        if obj.publisher == request.user:
-            # 团学组织允许发布强制收集
-            if request.user.type == 2:
-                self.readonly_fields = ('publish_time',)
-                self.fieldsets = (
-                    (None, {
-                        'fields': ('title', 'content', 'publish_time')
-                    }),
-                    ('提交限制', {
-                        'fields': ('due_time', 'allow_multiple', 'private', 'valid_users', 'forced', 'collect_from')
-                    })
-                )
-            # 社团不允许发布强制收集
-            else:
-                self.readonly_fields = ('publish_time',)
-                self.fieldsets = (
-                    (None, {
-                        'fields': ('title', 'content', 'publish_time')
-                    }),
-                    ('提交限制', {
-                        'fields': ('due_time', 'allow_multiple', 'private', 'valid_users')
-                    })
-                )
-        # 查看界面的字段，不显示允许查看的用户和强制提交的用户
+        # 非管理员用户根据用户角色及是否为发布者决定权限
         else:
-            self.fieldsets = (
-                (None, {
-                    'fields': ('title', 'content', 'publisher', 'publish_time')
-                }),
-                ('提交限制', {
-                    'fields': ('due_time',  'allow_multiple',)
-                })
-            )
+            # 发布者允许编辑
+            if obj.publisher == request.user:
+                # 团学组织允许发布强制收集
+                if request.user.type == ORGANIZATION:
+                    self.readonly_fields = ('publish_time',)
+                    self.fieldsets = (
+                        (None, {
+                            'fields': ('title', 'content', 'publish_time')
+                        }),
+                        ('提交限制', {
+                            'fields': ('due_time', 'allow_multiple', 'private', 'valid_users', 'forced', 'collect_from')
+                        })
+                    )
+                # 社团不允许发布强制收集
+                elif request.user.type == CLUB:
+                    self.readonly_fields = ('publish_time',)
+                    self.fieldsets = (
+                        (None, {
+                            'fields': ('title', 'content', 'publish_time')
+                        }),
+                        ('提交限制', {
+                            'fields': ('due_time', 'allow_multiple', 'private', 'valid_users')
+                        })
+                    )
+            # 非发布者只允许查看
+            else:
+                self.readonly_fields = ('title', 'content', 'publisher', 'publish_time', 'due_time',  'allow_multiple',)
+                self.fieldsets = (
+                    (None, {
+                        'fields': ('title', 'content', 'publisher', 'publish_time')
+                    }),
+                    ('提交限制', {
+                        'fields': ('due_time',  'allow_multiple',)
+                    })
+                )
 
     # 根据用户角色修改列表页内容
     def changelist_view(self, request, extra_context=None):
@@ -271,30 +343,22 @@ class CollectingAdmin(admin.ModelAdmin):
             collectings = collectings.exclude(id=submitting.collecting.id)
         if len(collectings.all()) != 0:
             self.message_user(request, "你有必须提交但尚未提交的内容，请注意查看并及时提交。", 'warning')
-        # 学生限制查看筛选器
-        if request.user.type == 1:
+        # 管理员的筛选器
+        if request.user.type == ADMIN:
+            self.list_display = ['title', 'publisher', 'publish_time', 'due_time', 'allow_multiple', 'private', 'forced']
+            self.list_filter = [self.UserPublishedFilter, self.UserForcedFilter, self.DueTimeMissedFilter, self.Submitted, 'allow_multiple', 'private', 'forced']
+        # 学生的筛选器
+        elif request.user.type == STUDENT:
             self.list_display = ['title', 'publisher', 'publish_time', 'due_time', 'allow_multiple']
             self.list_filter = [self.UserForcedFilter, self.DueTimeMissedFilter, self.Submitted, 'allow_multiple']
-        # 其他用户不限制筛选器
-        else:
-            self.list_display = [
-                'title',
-                'publisher',
-                'publish_time',
-                'due_time',
-                'allow_multiple',
-                'private',
-                'forced'
-            ]
-            self.list_filter = [
-                self.UserPublishedFilter,
-                self.UserForcedFilter,
-                self.DueTimeMissedFilter,
-                self.Submitted,
-                'allow_multiple',
-                'private',
-                'forced'
-            ]
+        # 团学组织的筛选器
+        elif request.user.type == ORGANIZATION:
+            self.list_display = ['title', 'publisher', 'publish_time', 'due_time', 'allow_multiple', 'private', 'forced']
+            self.list_filter = [self.UserPublishedFilter, self.UserForcedFilter, self.DueTimeMissedFilter, self.Submitted, 'allow_multiple', 'private', 'forced']
+        # 社团的筛选器
+        elif request.user.type == CLUB:
+            self.list_display = ['title', 'publisher', 'publish_time', 'due_time', 'allow_multiple', 'private', 'forced']
+            self.list_filter = [self.UserPublishedFilter, self.UserForcedFilter, self.DueTimeMissedFilter, self.Submitted, 'allow_multiple', 'private', 'forced']
         return super().changelist_view(request, extra_context)
 
     # 增加收集前设置表单字段
@@ -316,9 +380,9 @@ class CollectingAdmin(admin.ModelAdmin):
                 submittings = submittings.filter(user=request.GET['user'])
                 return_url = return_url + "?submit_status=1"
             # 非管理员且非发布者则只显示自己的相关提交
-            if (obj.publisher != request.user) & (request.user.type != 0):
+            if (obj.publisher != request.user) & (request.user.type != ADMIN):
                 submittings = submittings.filter(user=request.user.id)
-            # 由提交跳转来时将返回链接跳转回提交
+            # 由提交页面跳转来时返回链接将指向来源的提交
             if request.GET.get('from_subimtting'):
                 return_url = "/CollectingAndSubmitting/submitting/" + str(request.GET['from_subimtting']) + "/change/"
             STATUS_CHOICE = ('草稿', '已提交', '已处理', '已驳回')
@@ -329,8 +393,8 @@ class CollectingAdmin(admin.ModelAdmin):
                 s.submit_time.strftime(u'%Y{y}%m{m}%d{d} %H:%M').format(y='年', m='月', d='日'),
                 STATUS_CHOICE[s.status]
             ), (
-                # 收集者显示草稿时无跳转链接
-                None if ((s.status == 0) and (request.user != s.user) and (request.user.type != 0))
+                # 收集者查看草稿状态时无跳转链接
+                None if ((s.status == DRAFT) and (request.user == s.collecting.publisher))
                 # 提交者或管理员显示草稿的跳转链接
                 else ("/CollectingAndSubmitting/submitting/" + str(s.id) + "/change/"))
             ) for s in submittings]
@@ -378,8 +442,8 @@ class CollectingAdmin(admin.ModelAdmin):
                 "return_url": return_url
             }
             return render(request, 'admin/CollectingAndSubmitting/CustomPages/collecting_submit_status.html', content)
-        # 不是自己发布的收集则允许提交
-        if obj.publisher != request.user and request.user.type != 0:
+        # 非发布者则允许提交
+        if obj.publisher != request.user:
             # 未超时允许提交
             if (not obj.due_time) or obj.due_time > timezone.now():
                 # 允许多份提交或尚未提交则显示新建提交按钮
@@ -418,8 +482,8 @@ class CollectingAdmin(admin.ModelAdmin):
                             self.message_user(request, "已超时，不允许提交。", 'warning')
                     else:
                         self.message_user(request, "已超时，不允许提交。", 'warning')
-        # 发布者和管理员
-        else:
+        # 发布者和管理员允许查看相关提交和提交情况
+        if (request.user == obj.publisher) or (request.user.type == ADMIN):
             # 允许查看相关提交
             extra_context['collecting_submit_list'] = request.path + "?related=1"
             # 强制收集的提交显示收集状况
@@ -441,14 +505,11 @@ class CollectingAdmin(admin.ModelAdmin):
 
     # 保存模型前的操作
     def save_model(self, request, obj, form, change):
-        # 不是保存操作则不保存
-        if "_add" in request.POST:
-            return
-        # 无内容时直接返回
-        if not form.cleaned_data:
-            return
-        # 新建收集前自动添加发布者
-        if (request.user.type != 0 and (not change)) or (request.user.type == 0 and (not form.cleaned_data['publisher'])):
+        # 非管理员新建收集前自动添加发布者
+        if request.user.type != ADMIN and (not change):
+            obj.publisher = request.user
+        # 管理员未填写发布者则自动添加
+        if request.user.type == ADMIN and (not form.cleaned_data['publisher']):
             obj.publisher = request.user
         # 截止时间不允许早于发布时间
         if change and form.cleaned_data['due_time'] and form.cleaned_data['due_time'] <= obj.publish_time:
@@ -530,57 +591,136 @@ class SubmittingAdmin(admin.ModelAdmin):
     # 重置查询集
     def get_queryset(self, request):
         qs = super(SubmittingAdmin, self).get_queryset(request)
-        if request.user.type == 0:
+        # 管理员允许查看全部提交
+        if request.user.type == ADMIN:
             return qs
-        else:
+        # 学生只允许查看自己的提交
+        elif request.user.type == STUDENT:
+            return (qs.distinct() & request.user.user_submittings.distinct()).distinct()
+        # 团学组织只允许查看提交给自己的或自己的提交
+        elif request.user.type == STUDENT:
+            user_submittings = qs.distinct() & request.user.user_submittings.distinct()
             for submitting in qs:
                 if submitting.collecting.publisher != request.user:
                     qs = qs.exclude(id=submitting.id)
-                qs = qs.exclude(status=0)
-                qs = (qs.distinct() | request.user.user_submittings.distinct()).distinct()
+                qs = qs.exclude(status=DRAFT)
+            qs = (qs.distinct() & user_submittings).distinct()
+            return qs
+        # 社团只允许查看提交给自己的或自己的提交
+        elif request.user.type == STUDENT:
+            user_submittings = qs.distinct() & request.user.user_submittings.distinct()
+            for submitting in qs:
+                if submitting.collecting.publisher != request.user:
+                    qs = qs.exclude(id=submitting.id)
+                qs = qs.exclude(status=DRAFT)
+            qs = (qs.distinct() & user_submittings).distinct()
             return qs
 
-    # 不允许用户主动添加提交
-    def has_add_permission(self, request):
-        if request.user.type == 0:
+    # 提交模块权限
+    def has_module_permission(self, request):
+        # 未登录用户无权限
+        if isinstance(request.user, AnonymousUser):
+            return False
+        # 管理员有权限
+        if request.user.type == ADMIN:
             return True
-        return False
+        # 学生无权限
+        elif request.user.type == STUDENT:
+            return True
+        # 团学组织有权限
+        elif request.user.type == ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == CLUB:
+            return True
 
-    # 根据用户角色缺点修改权限
+    # 主动添加提交的权限
+    def has_add_permission(self, request):
+        # 管理员有权限
+        if request.user.type == ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == CLUB:
+            return False
+
+    # 修改提交的权限
     def has_change_permission(self, request, obj=None):
-        # 管理员只可修改自己的提交
-        if request.user.type == 0:
+        # 自己有权限修改草根或被驳回的提交
+        if obj and obj.user == request.user:
+            if obj.status == DRAFT or obj.status == REJECTED:
+                return True
+            else:
+                return False
+        # 管理员有权限
+        if request.user.type == ADMIN:
             return True
-        # 其他人自可修改自己提交的未处理或驳回的提交
-        if (not obj) or (obj and obj.user == request.user and obj.status != 1 and obj.status != 2):
-            return True
-        return False
+        # 学生无权限
+        elif request.user.type == STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == CLUB:
+            return False
 
     # 除管理员外任何人都只可删除自己的提交
     def has_delete_permission(self, request, obj=None):
-        if request.user.type == 0 or (obj and obj.user == request.user and obj.status != 2):
+        # 自己有权限删除未批准的提交
+        if obj and (obj.user == request.user):
+            if obj.status != HANDLED:
+                return False
+            else:
+                return True
+        # 管理员有权限
+        if request.user.type == ADMIN:
             return True
-        return False
+        # 学生无权限
+        elif request.user.type == STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == CLUB:
+            return False
 
     # 根据用户角色变更修改页面的内容
     def modify_change_form(self, request, obj):
-        # 管理员拥有一切权限
-        if request.user.type == 0:
+        # 管理员拥有一切查看和修改权限
+        if request.user.type == ADMIN:
             self.readonly_fields = ('submit_time',)
-        # 添加者可以编辑
-        if obj.user == request.user:
-            self.readonly_fields = ('collecting', 'user', 'submit_time', 'status')
+        # 非管理员根据是否为提交者决定权限
+        else:
+            # 添加者可以编辑
+            if obj.user == request.user:
+                self.readonly_fields = ('collecting', 'user', 'submit_time', 'status')
+            # 非自己的提交不允许修改
+            else:
+                self.readonly_fields = ('title', 'collecting', 'content', 'file', 'user', 'submit_time', 'status')
 
     # 根据用户角色修改列表页内容
     def changelist_view(self, request, extra_context=None):
         # 有被驳回的提交时提醒
-        if len(request.user.user_submittings.filter(status=3)) != 0:
+        if len(request.user.user_submittings.filter(status=REJECTED)) != 0:
             self.message_user(request, "你有被驳回的提交，请及时修改并重新提交。", 'warning')
-        # 学生限制查看范围
-        if request.user.type == 1:
+        # 管理员的筛选器
+        if request.user.type == ADMIN:
+            self.list_filter = [self.Type, 'status']
+        # 学生的筛选器
+        elif request.user.type == STUDENT:
             self.list_filter = ['status']
-        # 其他用户不限制查看范围
-        else:
+        # 团学组织的筛选器
+        if request.user.type == ORGANIZATION:
+            self.list_filter = [self.Type, 'status']
+        # 社团的筛选器
+        if request.user.type == CLUB:
             self.list_filter = [self.Type, 'status']
         return super().changelist_view(request, extra_context)
 
@@ -588,21 +728,21 @@ class SubmittingAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = self.get_object(request, object_id)
         extra_context = extra_context or {}
-        # 允许自己提交或撤回
-        if obj.user == request.user and request.user.type != 0:
+        # 自己可以提交或撤回
+        if obj.user == request.user:
             # 未提交时允许提交
-            if obj.status == 0:
+            if obj.status == DRAFT:
                 extra_context['allow_submit'] = True
             # 已提交未处理时允许撤回
-            elif obj.status == 1:
+            elif obj.status == SUBMITTED:
                 extra_context['allow_withdraw'] = True
             # 该用户有多于一个提交时显示相关提交
             if len(Submitting.objects.filter(collecting=obj.collecting).filter(user=request.user)) > 1:
                 extra_context['user_submit_list'] = "/CollectingAndSubmitting/collecting/" + str(obj.collecting.id) + "/change/?related=1&from_subimtting=" + str(obj.id)
-        # 发布者
-        elif obj.collecting.publisher == request.user and request.user.type != 0:
+        # 发布者允许处理或驳回
+        elif obj.collecting.publisher == request.user:
             # 允许处理和驳回
-            if obj.status == 1:
+            if obj.status == SUBMITTED:
                 extra_context['allow_handle'] = True
             # 显示更多提交
             extra_context['collecting_submit_list'] = "/CollectingAndSubmitting/collecting/" + str(obj.collecting.id) + "/change/?related=1&from_subimtting=" + str(obj.id)
@@ -616,25 +756,25 @@ class SubmittingAdmin(admin.ModelAdmin):
     def response_change(self, request, obj):
         # 提交
         if "_submit" in request.POST:
-            obj.status = 1
+            obj.status = SUBMITTED
             obj.save()
             self.message_user(request, "提交成功，等待处理中。提交的内容被处理前你仍可以撤回并修改后重新提交。")
             return HttpResponseRedirect(request.path)
         # 撤回
         elif "_withdraw" in request.POST:
-            obj.status = 0
+            obj.status = DRAFT
             obj.save()
             self.message_user(request, "撤回成功，当前内容为草稿状态。再次提交前你可以继续修改。")
             return HttpResponseRedirect(request.path)
         # 处理
         elif "_handle" in request.POST:
-            obj.status = 2
+            obj.status = HANDLED
             obj.save()
             self.message_user(request, "标记完成，提交者将得到反馈。")
             return HttpResponseRedirect(request.path)
         # 驳回
         elif "_reject" in request.POST:
-            obj.status = 3
+            obj.status = REJECTED
             obj.save()
             self.message_user(request, "已驳回，提交者将得到反馈。")
             return HttpResponseRedirect("/CollectingAndSubmitting/submitting/")
@@ -642,8 +782,6 @@ class SubmittingAdmin(admin.ModelAdmin):
 
     # 保存模型前的操作
     def save_model(self, request, obj, form, change):
-        if "_submit" in request.POST or "_withdraw" in request.POST or "_handle" in request.POST or "_reject" in request.POST:
-            return
-        if change and request.user.type != 0:
-            obj.status = 0
+        if change and request.user.type != ADMIN:
+            obj.status = DRAFT
         super(SubmittingAdmin, self).save_model(request, obj, form, change)

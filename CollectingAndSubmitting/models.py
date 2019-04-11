@@ -122,3 +122,10 @@ class Submitting(models.Model):
             return self.title
         else:
             return '未命名提交'
+
+
+# 提交相关常量
+DRAFT = 0
+SUBMITTED = 1
+HANDLED = 2
+REJECTED = 3
