@@ -442,8 +442,8 @@ class CollectingAdmin(admin.ModelAdmin):
                 "return_url": return_url
             }
             return render(request, 'admin/CollectingAndSubmitting/CustomPages/collecting_submit_status.html', content)
-        # 非发布者则允许提交
-        if obj.publisher != request.user:
+        # 非发布者且非管理员则允许提交
+        if (request.user != obj.publisher) and (request.user.type != ADMIN):
             # 未超时允许提交
             if (not obj.due_time) or obj.due_time > timezone.now():
                 # 允许多份提交或尚未提交则显示新建提交按钮
