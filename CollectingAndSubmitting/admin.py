@@ -520,7 +520,7 @@ class CollectingAdmin(admin.ModelAdmin):
         if request.user.type != User.ADMIN and (not change):
             obj.publisher = request.user
         # 管理员未填写发布者则自动添加
-        if request.user.type == User.ADMIN and (not form.cleaned_data['publisher']):
+        if request.user.type == User.ADMIN and (not form.cleaned_data.get('publisher')):
             obj.publisher = request.user
         # 截止时间不允许早于发布时间
         if change and form.cleaned_data.get('due_time') and form.cleaned_data['due_time'] <= obj.publish_time:
@@ -531,19 +531,19 @@ class CollectingAdmin(admin.ModelAdmin):
             self.message_user(request, "创建时设置的截止时间不能早于当前时间，已清除截止时间。", 'warning')
             obj.due_time = None
         # 取消勾选指定用户查看时删除允许查看的用户
-        if not form.cleaned_data['private']:
+        if not form.cleaned_data.get('private'):
             form.cleaned_data['valid_users'] = []
         # 取消勾选强制提交时删除必须提交的用户
         if not form.cleaned_data.get('forced'):
             form.cleaned_data['collect_from'] = []
         # 允许查看的用户为空则取消勾选
-        if len(form.cleaned_data['valid_users']) == 0:
+        if len(form.cleaned_data.get('valid_users')) == 0:
             obj.private = False
         # 强制提交的用户为空则取消勾选
-        if (not form.cleaned_data.get('collect_from')) or len(form.cleaned_data['collect_from']) == 0:
+        if (not form.cleaned_data.get('collect_from')) or len(form.cleaned_data.get('collect_from')) == 0:
             obj.forced = False
         # 强制提交的用户不被允许查看则清除强制提交
-        if form.cleaned_data['valid_users'] and form.cleaned_data.get('collect_from'):
+        if form.cleaned_data.get('valid_users') and form.cleaned_data.get('collect_from'):
             if len(form.cleaned_data.get('collect_from').difference(form.cleaned_data.get('valid_users')).all()) != 0:
                 self.message_user(request, "必须提交的用户需要有权限查看，已自动为相关用户添加查看权限。", 'warning')
                 form.cleaned_data['valid_users'] = form.cleaned_data['valid_users'] | form.cleaned_data['collect_from']
