@@ -523,11 +523,11 @@ class CollectingAdmin(admin.ModelAdmin):
         if request.user.type == User.ADMIN and (not form.cleaned_data['publisher']):
             obj.publisher = request.user
         # 截止时间不允许早于发布时间
-        if change and form.cleaned_data['due_time'] and form.cleaned_data['due_time'] <= obj.publish_time:
+        if change and form.cleaned_data.get('due_time') and form.cleaned_data['due_time'] <= obj.publish_time:
             self.message_user(request, "修改时设置的截止时间不能早于发布时间，已清除截止时间。", 'warning')
             obj.due_time = None
         # 创建时截止时间不允许早于当前时间
-        if (not change) and form.cleaned_data['due_time'] and form.cleaned_data['due_time'] <= timezone.now():
+        if (not change) and form.cleaned_data.get('due_time') and form.cleaned_data['due_time'] <= timezone.now():
             self.message_user(request, "创建时设置的截止时间不能早于当前时间，已清除截止时间。", 'warning')
             obj.due_time = None
         # 取消勾选指定用户查看时删除允许查看的用户
