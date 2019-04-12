@@ -606,7 +606,7 @@ class SubmittingAdmin(admin.ModelAdmin):
                 if submitting.collecting.publisher != request.user:
                     qs = qs.exclude(id=submitting.id)
                 qs = qs.exclude(status=Submitting.DRAFT)
-            qs = (qs.distinct() & user_submittings).distinct()
+            qs = (qs.distinct() | user_submittings).distinct()
             return qs
         # 社团只允许查看提交给自己的或自己的提交
         elif request.user.type == User.CLUB:
@@ -615,7 +615,7 @@ class SubmittingAdmin(admin.ModelAdmin):
                 if submitting.collecting.publisher != request.user:
                     qs = qs.exclude(id=submitting.id)
                 qs = qs.exclude(status=Submitting.DRAFT)
-            qs = (qs.distinct() & user_submittings).distinct()
+            qs = (qs.distinct() | user_submittings).distinct()
             return qs
 
     # 提交模块权限
