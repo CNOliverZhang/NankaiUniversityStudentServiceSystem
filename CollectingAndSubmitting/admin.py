@@ -537,10 +537,10 @@ class CollectingAdmin(admin.ModelAdmin):
         if not form.cleaned_data.get('forced'):
             form.cleaned_data['collect_from'] = []
         # 允许查看的用户为空则取消勾选
-        if len(form.cleaned_data.get('valid_users')) == 0:
+        if (not form.cleaned_data.get('valid_users')) or (len(form.cleaned_data.get('valid_users')) == 0):
             obj.private = False
         # 强制提交的用户为空则取消勾选
-        if (not form.cleaned_data.get('collect_from')) or len(form.cleaned_data.get('collect_from')) == 0:
+        if (not form.cleaned_data.get('collect_from')) or (len(form.cleaned_data.get('collect_from')) == 0):
             obj.forced = False
         # 强制提交的用户不被允许查看则清除强制提交
         if form.cleaned_data.get('valid_users') and form.cleaned_data.get('collect_from'):
