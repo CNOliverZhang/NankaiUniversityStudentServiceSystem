@@ -113,6 +113,11 @@ class Submitting(models.Model):
         verbose_name='提交状态'
     )
 
+    DRAFT = 0
+    SUBMITTED = 1
+    HANDLED = 2
+    REJECTED = 3
+
     class Meta:
         verbose_name = '材料提交'
         verbose_name_plural = verbose_name
@@ -122,10 +127,3 @@ class Submitting(models.Model):
             return self.title
         else:
             return '未命名提交'
-
-
-# 提交相关常量
-DRAFT = 0
-SUBMITTED = 1
-HANDLED = 2
-REJECTED = 3

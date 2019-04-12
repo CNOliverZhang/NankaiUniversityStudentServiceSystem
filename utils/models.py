@@ -110,6 +110,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name='是否允许登录'
     )
 
+    ADMIN = 0
+    STUDENT = 1
+    ORGANIZATION = 2
+    CLUB = 3
+
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['name']
 
@@ -121,13 +126,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return str(self.name) + '(' + str(self.get_type_display()) + ')'
-
-
-# 用户相关常量
-ADMIN = 0
-STUDENT = 1
-ORGANIZATION = 2
-CLUB = 3
 
 
 # 反馈
@@ -142,20 +140,44 @@ class Feedback(models.Model):
         (0, '未回复'),
         (1, '已回复')
     )
-    type = models.PositiveSmallIntegerField(
+    status = models.PositiveSmallIntegerField(
         choices=STATUS_CHOICE,
         default=0,
         verbose_name='状态'
     )
+    TYPE_CHOICES = (
+        (0, '操作申请'),
+        (1, '错误反馈'),
+        (2, '功能建议')
+    )
+    type = models.PositiveSmallIntegerField(
+        choices=TYPE_CHOICES,
+        default=0,
+        verbose_name='类别'
+    )
+    feedback_time = models.DateTimeField(
+        auto_now=True,
+        verbose_name='反馈时间'
+    )
     content = models.TextField(max_length=500, verbose_name='内容')
-    replay = models.TextField(
+    reply = models.TextField(
         max_length=500,
         blank=True,
         null=True,
         verbose_name='回复'
     )
+    reply_time = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='回复时间'
+    )
 
+    NOT_REPLIED = 0
+    REPLIED = 1
 
-# 反馈相关常量
-NOT_REPLIED = 0
-REPLIED = 1
+    class Meta:
+        verbose_name = '操作申请和意见反馈'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return '由用户 ' + str(self.user) + ' 提交的反馈 ' + str(self.title)
