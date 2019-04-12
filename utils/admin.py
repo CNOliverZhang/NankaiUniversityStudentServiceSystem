@@ -4,7 +4,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponseRedirect
 from django.utils import timezone
-
 from .models import *
 
 
@@ -46,18 +45,23 @@ class CollegeAdmin(admin.ModelAdmin):
             return False
 
     def has_change_permission(self, request, obj=None):
-        # 管理员有权限
-        if request.user.type == User.ADMIN:
-            return True
-        # 学生无权限
-        elif request.user.type == User.STUDENT:
+        # 首页不显示编辑按钮
+        if not obj:
             return False
-        # 团学组织无权限
-        elif request.user.type == User.ORGANIZATION:
-            return False
-        # 社团无权限
-        elif request.user.type == User.CLUB:
-            return False
+        # 具体对象的编辑权限
+        else:
+            # 管理员有权限更改
+            if request.user.type == User.ADMIN:
+                return True
+            # 学生无权限
+            elif request.user.type == User.STUDENT:
+                return False
+            # 团学组织无权限
+            elif request.user.type == User.ORGANIZATION:
+                return False
+            # 社团无权限
+            elif request.user.type == User.CLUB:
+                return False
 
     def has_add_permission(self, request, obj=None):
         # 管理员有权限
@@ -121,6 +125,7 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('type', 'organizations')
         })
     )
+    add_fieldsets = fieldsets
     filter_horizontal = ('organizations',)
     readonly_fields = ()
 
@@ -158,6 +163,21 @@ class CustomUserAdmin(UserAdmin):
         elif request.user.type == User.CLUB:
             return True
 
+    # 查看用户权限
+    def has_view_permission(self, request, obj=None):
+        # 管理员有权限
+        if request.user.type == User.ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == User.STUDENT:
+            return False
+        # 团学组织有权限
+        elif request.user.type == User.ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == User.CLUB:
+            return True
+
     # 新建用户权限
     def has_add_permission(self, request):
         # 管理员有权限
@@ -175,21 +195,26 @@ class CustomUserAdmin(UserAdmin):
 
     # 修改账户权限
     def has_change_permission(self, request, obj=None):
-        # 自己有权限
-        if obj == request.user:
-            return True
-        # 管理员有权限
-        if request.user.type == User.ADMIN:
-            return True
-        # 学生无权限
-        elif request.user.type == User.STUDENT:
+        # 首页不显示编辑按钮
+        if not obj:
             return False
-        # 团学组织无权限
-        elif request.user.type == User.ORGANIZATION:
-            return False
-        # 社团无权限
-        elif request.user.type == User.CLUB:
-            return False
+        # 具体对象的编辑权限
+        else:
+            # 用户有权更改自己的信息
+            if obj == request.user:
+                return True
+            # 管理员或自己有权限更改
+            if request.user.type == User.ADMIN:
+                return True
+            # 学生无权限
+            elif request.user.type == User.STUDENT:
+                return False
+            # 团学组织无权限
+            elif request.user.type == User.ORGANIZATION:
+                return False
+            # 社团无权限
+            elif request.user.type == User.CLUB:
+                return False
 
     # 删除账户权限
     def has_delete_permission(self, request, obj=None):
@@ -242,6 +267,7 @@ class CustomUserAdmin(UserAdmin):
                     'fields': ('type', 'organizations')
                 })
             )
+            self.add_fieldsets = self.fieldsets
         # 组织不可主动定义用户所属组织
         elif request.user.type == User.ORGANIZATION:
             self.readonly_fields = ()
@@ -256,6 +282,7 @@ class CustomUserAdmin(UserAdmin):
                     'fields': ('type',)
                 })
             )
+            self.add_fieldsets = self.fieldsets
 
     # 根据用户角色变更修改页面内容
     def modify_change_form(self, request, obj):
@@ -472,6 +499,21 @@ class FeedbackAdmin(admin.ModelAdmin):
         elif request.user.type == User.CLUB:
             return True
 
+    # 查看反馈权限
+    def has_view_permission(self, request, obj=None):
+        # 管理员有权限
+        if request.user.type == User.ADMIN:
+            return True
+        # 学生有权限
+        elif request.user.type == User.STUDENT:
+            return True
+        # 团学组织有权限
+        elif request.user.type == User.ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == User.CLUB:
+            return True
+
     # 添加反馈权限
     def has_add_permission(self, request):
         # 管理员无权限
@@ -489,24 +531,26 @@ class FeedbackAdmin(admin.ModelAdmin):
 
     # 修改反馈的权限
     def has_change_permission(self, request, obj=None):
-        print(obj)
-        if obj:
-            print(obj.status)
-        # 管理员有权限回复提交
-        if request.user.type == User.ADMIN:
-            if obj and obj.status == Feedback.NOT_REPLIED:
-                return True
-            else:
+        # 首页不显示编辑按钮
+        if not obj:
+            return False
+        # 具体对象的编辑权限
+        else:
+            # 管理员有权限回复提交
+            if request.user.type == User.ADMIN:
+                if obj and obj.status == Feedback.NOT_REPLIED:
+                    return True
+                else:
+                    return False
+            # 学生无权限
+            elif request.user.type == User.STUDENT:
                 return False
-        # 学生无权限
-        elif request.user.type == User.STUDENT:
-            return False
-        # 团学组织无权限
-        elif request.user.type == User.ORGANIZATION:
-            return False
-        # 社团无权限
-        elif request.user.type == User.CLUB:
-            return False
+            # 团学组织无权限
+            elif request.user.type == User.ORGANIZATION:
+                return False
+            # 社团无权限
+            elif request.user.type == User.CLUB:
+                return False
 
     # 除管理员外任何人都只可删除自己的反馈
     def has_delete_permission(self, request, obj=None):
@@ -595,7 +639,7 @@ class FeedbackAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         obj = self.get_object(request, object_id)
         self.modify_change_form(request, obj)
-        return self.changeform_view(request, None, form_url, extra_context)
+        return self.changeform_view(request, object_id, form_url, extra_context)
 
     # 保存模型前的操作
     def save_model(self, request, obj, form, change):

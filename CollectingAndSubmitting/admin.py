@@ -170,6 +170,21 @@ class CollectingAdmin(admin.ModelAdmin):
         elif request.user.type == User.CLUB:
             return True
 
+    # 查看收集权限
+    def has_view_permission(self, request, obj=None):
+        # 管理员有权限
+        if request.user.type == User.ADMIN:
+            return True
+        # 学生有权限
+        elif request.user.type == User.STUDENT:
+            return True
+        # 团学组织有权限
+        elif request.user.type == User.ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == User.CLUB:
+            return True
+
     # 新建收集权限
     def has_add_permission(self, request):
         # 管理员有权限
@@ -187,21 +202,26 @@ class CollectingAdmin(admin.ModelAdmin):
 
     # 修改收集权限
     def has_change_permission(self, request, obj=None):
-        # 自己有权限
-        if obj and (obj.publisher == request.user):
-            return True
-        # 管理员有权限
-        if request.user.type == User.ADMIN:
-            return True
-        # 学生无权限
-        elif request.user.type == User.STUDENT:
+        # 首页不显示编辑按钮
+        if not obj:
             return False
-        # 团学组织无权限
-        elif request.user.type == User.ORGANIZATION:
-            return False
-        # 社团无权限
-        elif request.user.type == User.CLUB:
-            return False
+        # 具体对象的编辑权限
+        else:
+            # 自己有权限
+            if obj.publisher == request.user:
+                return True
+            # 管理员有权限
+            if request.user.type == User.ADMIN:
+                return True
+            # 学生无权限
+            elif request.user.type == User.STUDENT:
+                return False
+            # 团学组织无权限
+            elif request.user.type == User.ORGANIZATION:
+                return False
+            # 社团无权限
+            elif request.user.type == User.CLUB:
+                return False
 
     # 删除收集权限
     def has_delete_permission(self, request, obj=None):
@@ -580,7 +600,7 @@ class SubmittingAdmin(admin.ModelAdmin):
         elif request.user.type == User.STUDENT:
             return (qs.distinct() & request.user.user_submittings.distinct()).distinct()
         # 团学组织只允许查看提交给自己的或自己的提交
-        elif request.user.type == User.STUDENT:
+        elif request.user.type == User.ORGANIZATION:
             user_submittings = qs.distinct() & request.user.user_submittings.distinct()
             for submitting in qs:
                 if submitting.collecting.publisher != request.user:
@@ -589,7 +609,7 @@ class SubmittingAdmin(admin.ModelAdmin):
             qs = (qs.distinct() & user_submittings).distinct()
             return qs
         # 社团只允许查看提交给自己的或自己的提交
-        elif request.user.type == User.STUDENT:
+        elif request.user.type == User.CLUB:
             user_submittings = qs.distinct() & request.user.user_submittings.distinct()
             for submitting in qs:
                 if submitting.collecting.publisher != request.user:
@@ -616,21 +636,26 @@ class SubmittingAdmin(admin.ModelAdmin):
         elif request.user.type == User.CLUB:
             return True
 
-    # 任何人都没有主动添加提交的权限
-    def has_add_permission(self, request):
-        return False
-
-    # 修改提交的权限
-    def has_change_permission(self, request, obj=None):
-        # 自己有权限修改草根或被驳回的提交
-        if obj and obj.user == request.user:
-            if obj.status == Submitting.DRAFT or obj.status == Submitting.REJECTED:
-                return True
-            else:
-                return False
+    # 查看提交权限
+    def has_view_permission(self, request, obj=None):
         # 管理员有权限
         if request.user.type == User.ADMIN:
             return True
+        # 学生有权限
+        elif request.user.type == User.STUDENT:
+            return True
+        # 团学组织有权限
+        elif request.user.type == User.ORGANIZATION:
+            return True
+        # 社团有权限
+        elif request.user.type == User.CLUB:
+            return True
+
+    # 任何人都没有主动添加提交的权限
+    def has_add_permission(self, request):
+        # 管理员无权限
+        if request.user.type == User.ADMIN:
+            return False
         # 学生无权限
         elif request.user.type == User.STUDENT:
             return False
@@ -640,6 +665,32 @@ class SubmittingAdmin(admin.ModelAdmin):
         # 社团无权限
         elif request.user.type == User.CLUB:
             return False
+
+    # 修改提交的权限
+    def has_change_permission(self, request, obj=None):
+        # 首页不显示编辑按钮
+        if not obj:
+            return False
+        # 具体对象的编辑权限
+        else:
+            # 自己有权限修改草根或被驳回的提交
+            if obj.user == request.user:
+                if obj.status == Submitting.DRAFT or obj.status == Submitting.REJECTED:
+                    return True
+                else:
+                    return False
+            # 管理员有权限
+            if request.user.type == User.ADMIN:
+                return True
+            # 学生无权限
+            elif request.user.type == User.STUDENT:
+                return False
+            # 团学组织无权限
+            elif request.user.type == User.ORGANIZATION:
+                return False
+            # 社团无权限
+            elif request.user.type == User.CLUB:
+                return False
 
     # 除管理员外任何人都只可删除自己的提交
     def has_delete_permission(self, request, obj=None):
