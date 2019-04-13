@@ -126,14 +126,12 @@ STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
+
+# 富文本编辑器
 CKEDITOR_UPLOAD_PATH = 'upload/'
 CKEDITOR_IMAGE_BACKEND = 'pillow'
 CKEDITOR_BROWSE_SHOW_DIRS = True
 CKEDITOR_RESTRICT_BY_USER = True
-
-
-# 富文本编辑器
-
 CKEDITOR_CONFIGS = {
     # 配置名是default时，django-ckeditor默认使用这个配置
     'default': {
@@ -144,14 +142,15 @@ CKEDITOR_CONFIGS = {
         'height': '150px',
         'image_previewText': ' ',
         'tabSpaces': 4,
-        'toolbar': 'Custom',
-        # 添加按钮在这里
-        'toolbar_Custom': [
-            ['Bold', 'Italic', 'Underline', 'Format', 'RemoveFormat'],
-            ['NumberedList', 'BulletedList'],
-            ['Blockquote', 'CodeSnippet'],
-            ['Image', 'Link', 'Unlink'],
-            ['Maximize']
+        'toolbar': [
+            ['Undo', 'Redo', 'Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord'],
+            ['Bold', 'Italic', 'Underline', 'Strike', 'TextColor', 'BGColor', 'Subscript', 'Superscript'],
+            ['Format', 'Font', 'FontSize'],
+            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['RemoveFormat'],
+            ['NumberedList', 'BulletedList', 'Outdent', 'Indent'],
+            ['Blockquote', 'CodeSnippet', 'Source'],
+            ['Smiley', 'SpecialChar', 'Table', 'HorizontalRule', 'Image', 'Link', 'Unlink'],
         ],
         # 插件
         'extraPlugins': ','.join(['codesnippet', 'uploadimage', 'widget', 'lineutils']),

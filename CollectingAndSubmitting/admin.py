@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
+from django.utils.html import format_html
 from .models import *
 
 
@@ -117,6 +118,11 @@ class CollectingAdmin(admin.ModelAdmin):
                 for submitting in submittings:
                     collectings = collectings | Collecting.objects.filter(id=submitting.collecting.id)
                 return queryset.distinct() & collectings.distinct()
+
+    # 内容显示html
+    def content_html(self, collecting):
+        return format_html(collecting.content)
+    content_html.short_description = '内容'
 
     # 初始化列表页
     list_per_page = 10
@@ -336,10 +342,10 @@ class CollectingAdmin(admin.ModelAdmin):
                     )
             # 非发布者只允许查看
             else:
-                self.readonly_fields = ('title', 'content', 'publisher', 'publish_time', 'due_time',  'allow_multiple',)
+                self.readonly_fields = ('title', 'content_html', 'publisher', 'publish_time', 'due_time',  'allow_multiple',)
                 self.fieldsets = (
                     (None, {
-                        'fields': ('title', 'content', 'publisher', 'publish_time')
+                        'fields': ('title', 'content_html', 'publisher', 'publish_time')
                     }),
                     ('提交限制', {
                         'fields': ('due_time',  'allow_multiple',)
@@ -574,6 +580,11 @@ class SubmittingAdmin(admin.ModelAdmin):
                         queryset = queryset.exclude(id=submitting.id)
                 return queryset
 
+    # 内容显示html
+    def content_html(self, submitting):
+        return format_html(submitting.content)
+    content_html.short_description = '内容'
+
     # 初始化列表页
     list_per_page = 10
     list_display = ['title', 'user', 'collecting', 'submit_time', 'status']
@@ -725,7 +736,7 @@ class SubmittingAdmin(admin.ModelAdmin):
                 self.readonly_fields = ('collecting', 'user', 'submit_time', 'status')
             # 非自己的提交不允许修改
             else:
-                self.readonly_fields = ('title', 'collecting', 'content', 'file', 'user', 'submit_time', 'status')
+                self.readonly_fields = ('title', 'collecting', 'content_html', 'file', 'user', 'submit_time', 'status')
 
     # 根据用户角色修改列表页内容
     def changelist_view(self, request, extra_context=None):
