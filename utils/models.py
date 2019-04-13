@@ -16,6 +16,20 @@ class College(models.Model):
         return self.name
 
 
+# 反机器人
+class AntiRobot(models.Model):
+    question = models.CharField(max_length=50, verbose_name='问题')
+    hint = models.CharField(max_length=50, verbose_name='提示')
+    answer = models.CharField(max_length=50, verbose_name='答案')
+
+    class Meta:
+        verbose_name = '验证问答'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.question
+
+
 # 用户管理器
 class UserManager(BaseUserManager):
     def _create_user(self, username, password, **extra_fields):

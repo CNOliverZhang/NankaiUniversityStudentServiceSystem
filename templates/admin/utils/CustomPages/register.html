@@ -71,6 +71,10 @@
             </div>
         </div>
     </div>
+    <div class="form-row">
+    {{ form.anti_robot.errors }}
+    <b>【验证码】</b>{{ form.anti_robot.label_tag }} {{ form.anti_robot }}
+    </div>
     <div class="submit-row">
         <input type="submit" value="注册" />
     </div>

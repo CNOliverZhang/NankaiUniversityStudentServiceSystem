@@ -78,6 +78,77 @@ class CollegeAdmin(admin.ModelAdmin):
             return False
 
 
+@admin.register(AntiRobot)
+class AntiRobotAdmin(admin.ModelAdmin):
+
+    list_per_page = 10
+    list_display = ('question', 'hint', 'answer')
+
+    def has_module_permission(self, request):
+        # 未登录用户无权限
+        if isinstance(request.user, AnonymousUser):
+            return False
+        # 管理员有权限
+        if request.user.type == User.ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == User.STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == User.ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == User.CLUB:
+            return False
+
+    def has_view_permission(self, request, obj=None):
+        # 管理员有权限
+        if request.user.type == User.ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == User.STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == User.ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == User.CLUB:
+            return False
+
+    def has_change_permission(self, request, obj=None):
+        # 首页不显示编辑按钮
+        if not obj:
+            return False
+        # 具体对象的编辑权限
+        else:
+            # 管理员有权限更改
+            if request.user.type == User.ADMIN:
+                return True
+            # 学生无权限
+            elif request.user.type == User.STUDENT:
+                return False
+            # 团学组织无权限
+            elif request.user.type == User.ORGANIZATION:
+                return False
+            # 社团无权限
+            elif request.user.type == User.CLUB:
+                return False
+
+    def has_add_permission(self, request, obj=None):
+        # 管理员有权限
+        if request.user.type == User.ADMIN:
+            return True
+        # 学生无权限
+        elif request.user.type == User.STUDENT:
+            return False
+        # 团学组织无权限
+        elif request.user.type == User.ORGANIZATION:
+            return False
+        # 社团无权限
+        elif request.user.type == User.CLUB:
+            return False
+
+
 # 用户管理
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
