@@ -1,6 +1,5 @@
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
@@ -517,7 +516,7 @@ class CollectingAdmin(admin.ModelAdmin):
             submit = Submitting(collecting=obj, user=request.user)
             submit.save()
             submit_id = submit.id
-            return HttpResponseRedirect("/CollectingAndSubmitting/submitting/" + str(submit_id) + "/change/")
+            return redirect("/CollectingAndSubmitting/submitting/" + str(submit_id) + "/change/")
         return super().response_change(request, obj)
 
     # 保存模型前的操作
@@ -792,25 +791,25 @@ class SubmittingAdmin(admin.ModelAdmin):
             obj.status = Submitting.SUBMITTED
             obj.save()
             self.message_user(request, "提交成功，等待处理中。提交的内容被处理前你仍可以撤回并修改后重新提交。")
-            return HttpResponseRedirect(request.path)
+            return redirect(request.path)
         # 撤回
         elif "_withdraw" in request.POST:
             obj.status = Submitting.DRAFT
             obj.save()
             self.message_user(request, "撤回成功，当前内容为草稿状态。再次提交前你可以继续修改。")
-            return HttpResponseRedirect(request.path)
+            return redirect(request.path)
         # 处理
         elif "_handle" in request.POST:
             obj.status = Submitting.HANDLED
             obj.save()
             self.message_user(request, "标记完成，提交者将得到反馈。")
-            return HttpResponseRedirect(request.path)
+            return redirect(request.path)
         # 驳回
         elif "_reject" in request.POST:
             obj.status = Submitting.REJECTED
             obj.save()
             self.message_user(request, "已驳回，提交者将得到反馈。")
-            return HttpResponseRedirect("/CollectingAndSubmitting/submitting/")
+            return redirect("/CollectingAndSubmitting/submitting/")
         return super().response_change(request, obj)
 
     # 保存模型前的操作

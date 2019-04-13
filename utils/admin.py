@@ -242,10 +242,9 @@ class CustomUserAdmin(UserAdmin):
                     (2, '团学组织'),
                     (3, '社团')
                 )
-            # 团学组织允许创建学生，团学组织或社团
+            # 团学组织允许创建团学组织或社团
             elif request.user.type == User.ORGANIZATION:
                 kwargs['choices'] = (
-                    (1, '学生'),
                     (2, '团学组织'),
                     (3, '社团')
                 )
