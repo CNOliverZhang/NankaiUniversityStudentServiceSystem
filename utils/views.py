@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import redirect
 from django.views.generic import FormView
@@ -21,3 +22,12 @@ class RegisterView(FormView):
             return redirect('/')
         else:
             return super(RegisterView, self).get(request, args, kwargs)
+
+    # 注册成功提示
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            messages.add_message(request, messages.SUCCESS, '注册成功，请登录。')
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)

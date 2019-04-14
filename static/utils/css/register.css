@@ -91,3 +91,72 @@ body.register {
     background: none;
     text-align: left;
 }
+
+.register .submit-row .transmode {
+    text-align: right;
+}
+
+@media (max-width: 767px) {
+    body.register {
+        padding: 0 15px;
+    }
+
+    .register #container {
+        width: auto;
+        max-width: 480px;
+        margin: 50px auto;
+    }
+
+    .register #header,
+    .register #content {
+        padding: 15px;
+    }
+
+    .register #content-main {
+        float: none;
+    }
+
+    .register .form-row {
+        padding: 0;
+    }
+
+    .register .form-row + .form-row {
+        margin-top: 15px;
+    }
+
+    .register .form-row label {
+        display: block;
+        margin: 0 0 5px;
+        padding: 0;
+        line-height: 1.2;
+    }
+
+    .register .submit-row {
+        padding: 15px 0 0;
+    }
+
+    .register br, .register .submit-row label {
+        display: none;
+    }
+
+    .register .submit-row input {
+        margin: 0;
+        text-transform: uppercase;
+    }
+
+    .errornote {
+        margin: 0 0 20px;
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .register #header {
+        padding: 15px 20px;
+    }
+
+    .register #branding h1 {
+        margin: 0;
+    }
+}
