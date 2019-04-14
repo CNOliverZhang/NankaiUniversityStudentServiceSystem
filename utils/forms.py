@@ -18,6 +18,8 @@ class RegisterForm(forms.ModelForm):
             self.fields['anti_robot'].label = anti_robot.question
             self.fields['anti_robot'].widget.attrs['placeholder'] = anti_robot.hint
             self.answer = anti_robot.answer
+            print(self.fields['anti_robot'].label)
+            print(self.answer)
 
     # 覆写用户名
     username = forms.CharField(
@@ -84,8 +86,8 @@ class RegisterForm(forms.ModelForm):
     def clean(self):
         data = super(RegisterForm, self).clean()
         # 验证码
-        data.get('anti_robot')
         if data.get('anti_robot') != self.answer:
+            print(data.get('anti_robot'))
             print(self.answer)
             raise forms.ValidationError('验证码错误。')
         # 密码不一致
