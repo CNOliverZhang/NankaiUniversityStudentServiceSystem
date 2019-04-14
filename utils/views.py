@@ -21,13 +21,14 @@ class RegisterView(FormView):
         if not isinstance(request.user, AnonymousUser):
             return redirect('/')
         else:
+            kwargs['seed'] = hash(request.user)
             return super(RegisterView, self).get(request, args, kwargs)
 
     # 注册成功提示
     def post(self, request, *args, **kwargs):
-        result = super().post(request, args, kwargs)
-        if result == self.form_valid:
+        form = self.get_form()
+        if form.is_valid():
             messages.add_message(request, messages.SUCCESS, '注册成功，请登录。')
-            return result
+            return self.form_valid(form)
         else:
-            return result
+            return self.form_invalid(form)
