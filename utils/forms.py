@@ -1,5 +1,6 @@
 import random
 import re
+import time
 from django import forms
 from .models import *
 
@@ -9,6 +10,7 @@ class RegisterForm(forms.ModelForm):
     # 随机选取反机器人答案
     def __init__(self, *args, **kwargs):
         super(RegisterForm, self).__init__(*args, **kwargs)
+        random.seed(hash(str(len(User.objects.all())) + time.strftime("%Y%m%d_%H", time.localtime())))
         if len(AntiRobot.objects.all()) == 0:
             self.fields['anti_robot'].label = '南开大学创立于哪一年'
             self.fields['anti_robot'].widget.attrs['placeholder'] = '请输入四位阿拉伯数字'
@@ -18,8 +20,6 @@ class RegisterForm(forms.ModelForm):
             self.fields['anti_robot'].label = anti_robot.question
             self.fields['anti_robot'].widget.attrs['placeholder'] = anti_robot.hint
             self.answer = anti_robot.answer
-            print(self.fields['anti_robot'].label)
-            print(self.answer)
 
     # 覆写用户名
     username = forms.CharField(
@@ -87,8 +87,6 @@ class RegisterForm(forms.ModelForm):
         data = super(RegisterForm, self).clean()
         # 验证码
         if data.get('anti_robot') != self.answer:
-            print(data.get('anti_robot'))
-            print(self.answer)
             raise forms.ValidationError('验证码错误。')
         # 密码不一致
         if data.get('password') != data.get('password_confirm'):
