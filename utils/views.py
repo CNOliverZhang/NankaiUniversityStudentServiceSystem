@@ -25,9 +25,9 @@ class RegisterView(FormView):
 
     # 注册成功提示
     def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        if form.is_valid():
+        result = super().post(request, args, kwargs)
+        if result == self.form_valid:
             messages.add_message(request, messages.SUCCESS, '注册成功，请登录。')
-            return self.form_valid(form)
+            return result
         else:
-            return self.form_invalid(form)
+            return result
