@@ -84,8 +84,9 @@ class RegisterForm(forms.ModelForm):
     def clean(self):
         data = super(RegisterForm, self).clean()
         # 验证码
+        data.get('anti_robot')
         if data.get('anti_robot') != self.answer:
-            raise forms.ValidationError('验证码错误')
+            raise forms.ValidationError('验证码错误。')
         # 密码不一致
         if data.get('password') != data.get('password_confirm'):
             raise forms.ValidationError("密码输入不一致,请重试。")
