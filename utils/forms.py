@@ -78,7 +78,7 @@ class RegisterForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('username', 'name', 'password', 'campus', 'college', 'anti_robot')
+        fields = ('username', 'name', 'password', 'campus', 'college')
 
     # 校验表单
     def clean(self):
@@ -86,6 +86,7 @@ class RegisterForm(forms.ModelForm):
         # 验证码
         data.get('anti_robot')
         if data.get('anti_robot') != self.answer:
+            print(self.answer)
             raise forms.ValidationError('验证码错误。')
         # 密码不一致
         if data.get('password') != data.get('password_confirm'):
