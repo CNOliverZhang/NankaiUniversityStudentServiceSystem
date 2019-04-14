@@ -66,11 +66,11 @@ body.login {
 
 .login .submit-row {
     clear: both;
-    padding: 1em 0 0 9.4em;
+    padding: 1em 0 0 0;
     margin: 0;
     border: none;
     background: none;
-    text-align: left;
+    text-align: center;
 }
 
 .login .submit-row .transmode {
