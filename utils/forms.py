@@ -8,7 +8,6 @@ from .models import *
 class RegisterForm(forms.ModelForm):
     # 随机选取反机器人答案
     def __init__(self, *args, **kwargs):
-        print(kwargs['seed'])
         super(RegisterForm, self).__init__(*args, **kwargs)
         if len(AntiRobot.objects.all()) == 0:
             self.fields['anti_robot'].label = '南开大学创立于哪一年'

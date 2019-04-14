@@ -21,11 +21,10 @@ class RegisterView(FormView):
         if not isinstance(request.user, AnonymousUser):
             return redirect('/')
         else:
-            print(hash(request.user))
-            kwargs['seed'] = hash(request.user)
             return super(RegisterView, self).get(request, args, kwargs)
 
     # 注册成功提示
+    '''
     def post(self, request, *args, **kwargs):
         form = self.get_form()
         if form.is_valid():
@@ -33,3 +32,4 @@ class RegisterView(FormView):
             return self.form_valid(form)
         else:
             return self.form_invalid(form)
+    '''
